@@ -64,6 +64,14 @@ class OpAmp(Circuit):
         return 0
     
 
+class BJT(Circuit):
+    def __init__(self,name):
+        super(BJT, self).__init__(name)
+
+    def Z_tot(self, freq):
+        return 0
+    
+
         
 
 
@@ -71,7 +79,7 @@ class ChargeCircuit(Circuit):
 
     """Description of charge circuit for ionization readout for SCDMS."""
 
-    def __init__(self, name, Cdet=200.0e-12, Rbias=100e6, Rbleed=100e6, Cc=10e-9, Ccg=10e-12, Cfb=1e-12, Rfb=400e6, HEMT=None, opamp=None):
+    def __init__(self, name, Cdet=200.0e-12, Rbias=100e6, Rbleed=100e6, Cc=10e-9, Ccg=10e-12, Cfb=1e-12, Rfb=400e6, Rmirror=1e2, HEMT=None, opamp=None, bjt=None):
         """init class"""
         super(ChargeCircuit, self).__init__(name)
         self.Cdet = Capacitor(Cdet, 'Cdet')
@@ -83,10 +91,13 @@ class ChargeCircuit(Circuit):
         self.Cc = Capacitor(Cc, 'Cc')
         self.Cfb = Capacitor(Cfb, 'Cfb')
         self.Rfb = Resistor(Rfb, 'Rfb')
+        self.Rmirror = Resistor(Rmirror,'Rmirror')
         if not opamp:
             self.opamp = OpAmp('OpAmp')
         if not HEMT:
             self.HEMT = HEMTCircuit('HEMT')
+        if not bjt:
+            self.bjt = BJT('BJT')
     
     def Z_MC1(self, freq):
         """Impendance of circuitry at on lower coax PCB at MC stage."""
@@ -145,8 +156,14 @@ class ChargeCircuit(Circuit):
         Z = parallel(Z1, R113.Z(freq))
         return Z
 
+    def Z4(self, freq):
+        """Impedance of load resistance in current mirror."""
+        return self.Rmirror.Z(freq)
 
-    def Z_BJT
+
+    def Z_BJT(self,freq):
+        """Impedance of BJT mirror."""
+        return self.BJT.Z_tot(freq)
 
 
     def Z_tot(self, freq):
