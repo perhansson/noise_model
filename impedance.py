@@ -33,74 +33,107 @@ class Circuit(object):
     def __init__(self, name):
         """init class"""
         self.name = name
+        print('Circuit __init__ for ' + self.name)
 
     def Z_tot(self):
         """Should override this function"""
 
 
-class HEMTCircuit(Circuit):
-    def __init__(self,name, Rg=1e12, Cgs=100e-12):
-        super(HEMTCircuit, self).__init__(name)
+class HEMT(Circuit):
+    def __init__(self,name, Rg=1e12, Cgs=100e-12, gm=50):
+        """ Arguments:
+        Rg: input resistance on the gate
+        Cgs: gate-source capacitance
+        gm: transconductance in mS
+        """
+        Circuit.__init__(self,name)
         self.Rg = Resistor(Rg,'Rg')
         self.Cgs = Capacitor(Cgs,'Cgs)')
-        
+        self.gm = gm*1e-3 #S
+
     def Z_tot(self, freq):
         # gate to source resistance and gate to source capacitance in parallel
         Zt = parallel(self.Rg.Z(freq), self.Cgs.Z(freq))
         return Zt
     
 
+
 class OpAmp(Circuit):
-    def __init__(self,name, Rfb=1e20, Cfb=20e-12):
-        super(OpAmp, self).__init__(name)
-        self.Rfb = Resistor(Rfb,'Rfb')
-        self.Cfb = Capacitor(Cfb,'Cfb)')
+    def __init__(self,name):
+        Circuit.__init__(self,name)
 
-    def Z_fb(self, freq):
-        Z = parallel(self.Rfb.Z(freq), self.Cfb.Z(freq))
-        return Z
-
-    def Z_tot(self, freq):
+    def Aopen(self,freq):
+        """ override this function"""
         return 0
     
+class LT1677(OpAmp):
+    """Specific Opamp"""
+    def __init__(self, name):
+        OpAmp.__init__(self,name)
+
+    def Aopen(self,freq):
+        return 2.7e7
+
+
 
 class BJT(Circuit):
     def __init__(self,name):
-        super(BJT, self).__init__(name)
+        Circuit.__init__(self,name)
 
     def Z_tot(self, freq):
         return 0
     
 
+class Z6(Circuit):
+    """Opamp feedback circuit."""
+    def __init__(self,name, Rfb=1e20, Cfb=20e-12):
+        Circuit.__init__(self,name)
+        self.Rfb = Resistor(Rfb,'Rfb')
+        self.Cfb = Capacitor(Cfb,'Cfb)')
+
+    def Z_tot(self, freq):
+        """Impedance of opamp feedback network."""
+        Z = parallel(self.Rfb.Z(freq), self.Cfb.Z(freq))
+        return Z
+
         
 
+class Z3(Circuit):
+    """Load resistor and stabilization circuit."""
+    def __init__(self,name, R113=1.6e3, R1110=1e2, C1120=10e-9):
+        Circuit.__init__(self,name)
+        self.C1120 = Capacitor(C1120,'C1120')
+        self.R113 = Resistor(R113,'R113')
+        self.R1110 = Resistor(R1110,'R1110')
+    
+    def Z_tot(self, freq):
+        Z1 = series(self.R1110.Z(freq), self.C1120.Z(freq))
+        Z = parallel(Z1, self.R113.Z(freq))
+        return Z
 
-class ChargeCircuit(Circuit):
 
-    """Description of charge circuit for ionization readout for SCDMS."""
+class Z1_g(Circuit):
+    """Coupling capacitor to the HEMT gate at 4K"""
+    def __init__(self, name, Ccg=10e-12):
+        Circuit.__init__(self, name)
+        self.Ccg = Capacitor(Ccg, 'Ccg')
+    
+    def Z_tot(self,freq):
+        return self.Ccg.Z(freq)
 
-    def __init__(self, name, Cdet=200.0e-12, Rbias=100e6, Rbleed=100e6, Cc=10e-9, Ccg=10e-12, Cfb=1e-12, Rfb=400e6, Rmirror=1e2, HEMT=None, opamp=None, bjt=None):
-        """init class"""
-        super(ChargeCircuit, self).__init__(name)
+
+
+class Z1_MC(Circuit):
+    """Circuitry on lower coax PCB at MC stage."""
+    def __init__(self,name,Cdet=200.0e-12, Rbias=100e6, Rbleed=100e6, Cc=10e-9):
+        Circuit.__init__(self,name)
+        print('Z1_MC __init__ for ' + name)
         self.Cdet = Capacitor(Cdet, 'Cdet')
         self.Rbias = Resistor(Rbias, 'Rbias')
         self.Rbleed = Resistor(Rbleed, 'Rbleed')
-        # coupling capacitor to the HEMT gate at 4K
-        self.Ccg = Capacitor(Ccg, 'Ccg')
-        # coupling capacitor to the coax wire at MC stage
         self.Cc = Capacitor(Cc, 'Cc')
-        self.Cfb = Capacitor(Cfb, 'Cfb')
-        self.Rfb = Resistor(Rfb, 'Rfb')
-        self.Rmirror = Resistor(Rmirror,'Rmirror')
-        if not opamp:
-            self.opamp = OpAmp('OpAmp')
-        if not HEMT:
-            self.HEMT = HEMTCircuit('HEMT')
-        if not bjt:
-            self.bjt = BJT('BJT')
     
-    def Z_MC1(self, freq):
-        """Impendance of circuitry at on lower coax PCB at MC stage."""
+    def Z_tot(self,freq):
 
         # bias and detector are in parallel
         Z1 = parallel(self.Rbias.Z(freq), self.Cdet.Z(freq))
@@ -113,61 +146,78 @@ class ChargeCircuit(Circuit):
 
         return Z3
 
-    def Z1_tot(self,freq):
-        """Impedance from MC stage and HEMT."""
-        # impedance at 4K
-        Z1_4K = series(self.Z_MC1(freq), self.Ccg.Z(freq))
-        # in parallel to HEMT impedance
-        Z1 = parallel(self.Z_HEMT(freq),Z1_4K)
-        return Z1
 
-    def Z_HEMT(self, freq):
-        """Impedance of HEMT circuit"""
-        return self.HEMT.Z_tot(freq)
 
-    def Z_fb(self, freq):
-        """Impedance of feedback cap and resistor network."""
+class Z5(Circuit):
+    """"""
+    def __init__(self,name, C118=100e-9, R115=3.3e3, R114=3.3e3, R1140=1e3):
+        """"""
+        Circuit.__init__(self,name)
+        """Impedance of opamp comparator bias network."""
+        self.C118 = Capacitor(C118,'C118')
+        self.R115 = Resistor(R115,'R115')
+        self.R114 = Resistor(R114,'R114')
+        self.R1140 = Resistor(R1140,'R1140')
+
+    def Z_tot(self, freq):
+        Z1 = parallel(self.R115.Z(freq),self.R114.Z(freq))
+        Z2 = parallel(Z1,self.C118.Z(freq))
+        Z = series(self.R1140.Z(freq), Z2)
+        return Z
+
+
+class Z4(Circuit):
+    """"""
+    def __init___(self,name, Rmirror=1e2):
+        """"""
+        Circuit.__init__(self,name)
+        self.Rmirror = Resistor(Rmirror,'Rmirror')
+    
+    def Z_tot(self, freq):
+        """Impedance of load resistance in current mirror."""
+        return self.Rmirror.Z(freq)
+    
+
+
+class Z2(Circuit):
+    """Feedback cap and resistor network."""
+    def __init__(self,name, Cfb=1e-12, Rfb=400e6):
+        Circuit.__init__(self, name)
+        self.Cfb = Capacitor(Cfb, 'Cfb')
+        self.Rfb = Resistor(Rfb, 'Rfb')
+    
+    def Z_tot(self, freq):
         Z = parallel(self.Cfb.Z(freq), self.Rfb.Z(freq))
         return Z
 
-    def Z6(self, freq):
-        """Impedance of opamp feedback network."""
-        Z = self.opamp.Z_fb(freq)
-        return Z
 
-    def Z5(self, freq):
-        """Impedance of opamp comparator bias network."""
-        C118 = Capacitor(100e-9,'C118')
-        R115 = Resistor(3.3e3,'R115')
-        R114 = Resistor(3.3e3,'R114')
-        R1140 = Resistor(1e3,'R1140')
-        Z1 = parallel(R114.Z(freq),R115.Z(freq))
-        Z2 = parallel(Z1,C118.Z(freq))
-        Z = series(R1140.Z(freq), Z2)
-        return Z3
+class ChargeCircuit(Circuit):
 
+    """Description of charge circuit for ionization readout for SCDMS."""
 
-    def Z3(self, freq):
-        """Impedance of pole cancellation network."""
-        C1120 = Capacitor(10e-9,'C1120')
-        R113 = Resistor(1.6e3,'R113')
-        R1110 = Resistor(1e2,'R1110')
-        Z1 = series(R1110.Z(freq), C1120.Z(freq))
-        Z = parallel(Z1, R113.Z(freq))
-        return Z
+    def __init__(self, name,  Z1_MC=None, Z2=None, Z3=None, Z5=None, Z4=None, Z6=None, HEMT=None, opamp=None, bjt=None):
+        """init class"""
+        Circuit.__init__(self,name)
+        if not opamp:
+            self.opamp = OpAmp('OpAmp')
+        if not HEMT:
+            self.HEMT = HEMTCircuit('HEMT')
+        if not bjt:
+            self.bjt = BJT('BJT')
+        if not Z4:
+            self.Z4 = Z4('Z4')
+        if not Z3:
+            self.Z3 = Z3('Z3')
+        if not Z5:
+            self.Z5 = Z5('Z5')
+        if not Z6:
+            self.Z6 = Z6('Z6')
+        if not Z2:
+            self.Z2 = Z2('Z2')
+        if not Z1_MC:
+            self.Z1_MC = Z1_MC('Z1_MC')
+    
 
-    def Z4(self, freq):
-        """Impedance of load resistance in current mirror."""
-        return self.Rmirror.Z(freq)
-
-
-    def Z_BJT(self,freq):
-        """Impedance of BJT mirror."""
-        return self.BJT.Z_tot(freq)
-
-
-    def Z_tot(self, freq):
-        return 0.
 
 
     
