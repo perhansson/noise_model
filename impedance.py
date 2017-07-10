@@ -18,10 +18,14 @@ class Component(object):
         """Override this function."""
 
 class Capacitor(Component):
+    def __init__(self, value, name=''):
+        Component.__init__(self,value, name)
     def Z(self,f):
         return complex(0,-1.0/(2*pi*f*self.value))
 
 class Resistor(Component):
+    def __init__(self, value, name=''):
+        Component.__init__(self,value, name)
     def Z(self,f):
         return complex(self.value,0)
 
@@ -33,7 +37,6 @@ class Circuit(object):
     def __init__(self, name):
         """init class"""
         self.name = name
-        print('Circuit __init__ for ' + self.name)
 
     def Z_tot(self):
         """Should override this function"""
@@ -114,7 +117,7 @@ class Z3(Circuit):
 
 class Z1_g(Circuit):
     """Coupling capacitor to the HEMT gate at 4K"""
-    def __init__(self, name, Ccg=10e-12):
+    def __init__(self, name, Ccg=10e-9):
         Circuit.__init__(self, name)
         self.Ccg = Capacitor(Ccg, 'Ccg')
     
@@ -125,9 +128,8 @@ class Z1_g(Circuit):
 
 class Z1_MC(Circuit):
     """Circuitry on lower coax PCB at MC stage."""
-    def __init__(self,name,Cdet=200.0e-12, Rbias=100e6, Rbleed=100e6, Cc=10e-9):
+    def __init__(self,name,Cdet=200.0e-12, Rbias=80e6, Rbleed=80e6, Cc=10e-9):
         Circuit.__init__(self,name)
-        print('Z1_MC __init__ for ' + name)
         self.Cdet = Capacitor(Cdet, 'Cdet')
         self.Rbias = Resistor(Rbias, 'Rbias')
         self.Rbleed = Resistor(Rbleed, 'Rbleed')
@@ -181,7 +183,7 @@ class Z4(Circuit):
 
 class Z2(Circuit):
     """Feedback cap and resistor network."""
-    def __init__(self,name, Cfb=1e-12, Rfb=400e6):
+    def __init__(self,name, Cfb=1e-12, Rfb=320e6):
         Circuit.__init__(self, name)
         self.Cfb = Capacitor(Cfb, 'Cfb')
         self.Rfb = Resistor(Rfb, 'Rfb')
