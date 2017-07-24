@@ -1,4 +1,11 @@
+import numpy as np
 from math import pi as pi
+from math import sqrt
+
+
+kB = 1.38064852e-23
+qE = 1.602e-19
+
 
 
 def radToDeg(v):
@@ -28,6 +35,9 @@ class Resistor(Component):
         Component.__init__(self,value, name)
     def Z(self,f):
         return complex(self.value,0)
+    def voltage_noise(self,T):
+        """Return voltage noise in V/sqHz"""
+        return sqrt(4*kB*T*self.value)
 
 
 class Circuit(object):
@@ -58,6 +68,14 @@ class HEMT(Circuit):
         # gate to source resistance and gate to source capacitance in parallel
         Zt = parallel(self.Rg.Z(freq), self.Cgs.Z(freq))
         return Zt
+
+    def voltageNoise(self,f, fc=1.2e3, vflat=0.254-9):
+        """Voltage noise in V/sqHz.
+
+        fc = knee frequencey in Hz
+        vflat = white noise level.
+        """
+        return (fc/f + 1)*vflat
     
 
 
@@ -85,6 +103,14 @@ class BJT(Circuit):
 
     def Z_tot(self, freq):
         return 0
+
+    def shotNoise(self,I):
+        """Shot noise in A/sqHz."""
+        return sqrt(2*qE*I)
+
+    def currentNoise(self,I):
+        """Total current noise in A/sqHz."""
+        return self.shotNoise(I)
     
 
 class Z6(Circuit):
@@ -192,36 +218,38 @@ class Z2(Circuit):
         Z = parallel(self.Cfb.Z(freq), self.Rfb.Z(freq))
         return Z
 
+    def voltageNoise(self, T):
+        return self.Rfb.voltageNoise(T)
+    
 
 class ChargeCircuit(Circuit):
 
     """Description of charge circuit for ionization readout for SCDMS."""
 
-    def __init__(self, name,  Z1_MC=None, Z2=None, Z3=None, Z5=None, Z4=None, Z6=None, HEMT=None, opamp=None, bjt=None):
+    def __init__(self, name):
         """init class"""
         Circuit.__init__(self,name)
-        if not opamp:
-            self.opamp = OpAmp('OpAmp')
-        if not HEMT:
-            self.HEMT = HEMTCircuit('HEMT')
-        if not bjt:
-            self.bjt = BJT('BJT')
-        if not Z4:
-            self.Z4 = Z4('Z4')
-        if not Z3:
-            self.Z3 = Z3('Z3')
-        if not Z5:
-            self.Z5 = Z5('Z5')
-        if not Z6:
-            self.Z6 = Z6('Z6')
-        if not Z2:
-            self.Z2 = Z2('Z2')
-        if not Z1_MC:
-            self.Z1_MC = Z1_MC('Z1_MC')
+        self._components = []
+
+    def addCircuit(self,c):
+        if self.get(c.name) != None:
+            raise ValueError('this circuit is already present')
+        else:
+            self._components.append(circ)
     
+    def getCircuit(self, name):
+        for c in self._components:
+            if c.name == name:
+                return c
+        return None
+    
+    def setGain(self,A,f):
+        """Set total gain vs frequency"""
+        self._gain = A
+        self._f = f
 
-
-
+        
+    
     
 
     
