@@ -5,8 +5,7 @@ import argparse
 import cmath
 import numpy as np
 import matplotlib.pyplot as plt
-import impedance as Q
-from impedance import radToDeg
+from lib import impedance as Q
 
 
 def get_args():
@@ -27,7 +26,7 @@ def to_np_array(func, arr):
     return np.array([func(a) for a in arr])
 
 
-def impedancePlot(fig, f, Z, name=None, ylabel='Impedance', xlabel='Frequency', note=None, legend=None):
+def impedancePlot(fig, f, Z, name=None, ylabel='Impedance', xlabel='Frequency (Hz)', note=None, legend=None):
     """Plot impedance and phase"""
 
 
@@ -56,7 +55,7 @@ def impedancePlot(fig, f, Z, name=None, ylabel='Impedance', xlabel='Frequency', 
     Z_phase = to_np_array(cmath.phase, Z)
 
     ax_MC212 = plt.subplot(212)
-    plt.plot(f, radToDeg(Z_phase))
+    plt.plot(f, Q.radToDeg(Z_phase))
     plt.ylabel('Phase')
     plt.xlabel('Frequency')
     #ax_MC1.set_yscale(u'log')
@@ -339,13 +338,13 @@ def main():
     # noise from Z3
     en_Z3 = np.sqrt(4*args.T_300K*Q.kB*Z_Z3.real)
 
-    noisePlot(fig, f_arr, en_Z3, ylabel='V/sqHz', legend=r'e_n Z_3')
+    noisePlot(fig, f_arr, en_Z3, ylabel='V/sqHz', legend=r'$e_{n}$(Z$_{3})$')
     fig.clf()
 
     # check this!
     en_Z3_input = en_Z3/Aopen_HEMT
     
-    noisePlot(fig, f_arr, en_Z3_input,  name='en_Z3_input', ylabel=r'V/\sqrt{Hz}', legend=r'e_{n} Z_{3} (input)')
+    noisePlot(fig, f_arr, en_Z3_input,  name='en_Z3_input', ylabel=r'$V/\sqrt{Hz}$', legend=r'$e_{n}(Z_{3})$ (input)')
     fig.clf()
 
 
