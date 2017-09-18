@@ -153,7 +153,7 @@ def main():
     fig.clf()
 
     ## voltage gain of HEMT
-    # gain given by gm times load
+    # gain given by gm times load impedance
 
     # load impedance
     Z_Z3 = to_np_array(Z3.Z_tot, f_arr)
@@ -322,32 +322,32 @@ def main():
     # noise from feedback Circuit
     en_Z2 = np.sqrt(4*args.T_4K*Q.kB*Z_Z2.real)
 
-    noisePlot(fig, f_arr, en_Z2, name='en_Z2', ylabel='V/sqHz')
+    noisePlot(fig, f_arr, en_Z2, name='en_Z2', ylabel='V/sqHz', note='FB cap and R network.')
     fig.clf()
     
     en_Z2_input = en_Z2/Atotal_closed
     
-    noisePlot(fig, f_arr, en_Z2_input, name='en_Z2_gain', ylabel='V/sqHz')
+    noisePlot(fig, f_arr, en_Z2_input, name='en_Z2_input', ylabel='V/sqHz', note='FB cap and R network refered to input (/A_closed_total)')
     fig.clf()
     
     # noise from HEMT
     en_HEMT = hemt.voltageNoise(f_arr, fc=1.2e3, vflat=0.24e-9)
 
-    noisePlot(fig, f_arr, en_HEMT,  name='en_HEMT', ylabel='V/sqHz')
+    noisePlot(fig, f_arr, en_HEMT,  name='en_HEMT_input', ylabel='V/sqHz')
     fig.clf()
 
     # noise from Z3
     en_Z3 = np.sqrt(4*args.T_300K*Q.kB*Z_Z3.real)
 
-    noisePlot(fig, f_arr, en_Z3, ylabel='V/sqHz', legend=r'e_n Z_3')
+    noisePlot(fig, f_arr, en_Z3, name='en_Z3', ylabel='V/sqHz', legend=r'en Z_3')
     fig.clf()
 
-    # check this!
+    # refer voltage noise from Z3 to the input of the HEMT gate
+    # BJT is 
     en_Z3_input = en_Z3/Aopen_HEMT
     
-    noisePlot(fig, f_arr, en_Z3_input,  name='en_Z3_input', ylabel=r'V/\sqrt{Hz}', legend=r'e_{n} Z_{3} (input)')
+    noisePlot(fig, f_arr, en_Z3_input,  name='en_Z3_input', ylabel=r'V/\sqrt{Hz}', legend=r'en Z_3 (input)')
     fig.clf()
-
 
 
     # noise from BJT
@@ -356,13 +356,26 @@ def main():
     noisePlot(fig, f_arr, in_BJT, name='in_BJT', ylabel=r'A/\sqrt{Hz}', note='BJT shot noise')
     fig.clf()
     
-    # voltage noise as referred to the input of HEMT (scale by gm)
+    # voltage noise from BJT as referred to the input of HEMT (scale by gm)
     en_BJT = in_BJT/hemt.gm
 
     noisePlot(fig, f_arr, en_BJT, name='en_BJT', ylabel=r'V/\sqrt{Hz}', note=r'BJT shot noise (input, gm={0:.1f}mS)'.format(hemt.gm*1e3))
     #impedancePlot(fig, f_arr, Aopen_HEMT, 'Aopen_HEMT.png', ylabel='Aopen HEMT', note='Aopen HEMT gm={0:.1f}mS'.format(hemt.gm*1e3))
     fig.clf()
 
+
+    # noise from opamp
+    en_opamp = opamp.voltage_noise(f_arr)
+    
+    noisePlot(fig, f_arr, en_opamp, name='en_opamp', ylabel=r'V/\sqrt{Hz}', note=r'Opamp voltage noise')
+
+    fig.clf()
+    
+    # noise from opamp referred to HEMT gate input
+    # divide by HEMT open loop gain 
+    en_opamp_input = en_opamp/Aopen_HEMT
+
+    noisePlot(fig, f_arr, en_opamp_input, name='en_opamp_input', ylabel=r'V/\sqrt{Hz}', note=r'Opamp voltage noise (input)')
 
     
     if args.show:

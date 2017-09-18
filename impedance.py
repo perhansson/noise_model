@@ -87,14 +87,35 @@ class OpAmp(Circuit):
         """ override this function"""
         return 0
     
+    def voltage_noise(self, freq):
+        """ override this function"""
+        return voltage_noise(freq)
+
+
+    
 class LT1677(OpAmp):
     """Specific Opamp"""
     def __init__(self, name):
         OpAmp.__init__(self,name)
 
     def Aopen(self,freq):
+        # G=143dB @ <0.1Hz
+        # G=130dB @ 1Hz
+        # G=10dB @ 1MHz
+        #if freq < 0.1:
+        #    G = 143.
+        #else:
+        #    G = 130
         return 2.7e7
 
+    def voltage_noise(self, freq, fc=13.0, vflat=3.2e-9):
+        """Input voltage noise.
+        fc = knee frequencey in Hz
+        vflat = white noise level.
+        """
+        return (fc/freq + 1)*vflat
+
+        
 
 
 class BJT(Circuit):
