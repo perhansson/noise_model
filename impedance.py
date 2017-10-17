@@ -97,16 +97,21 @@ class LT1677(OpAmp):
     """Specific Opamp"""
     def __init__(self, name):
         OpAmp.__init__(self,name)
+        self._pole1 = 0.5 #Hz
+        self._pole2 = 80e3 #Hz
+        self._Aflat = 135.0 #Db
+        self._phase_slope = -30 #deg/decade in Freq
+        
+    def Aopen_phase(self, freq):
+        if freq <1e5:
+            return math.pi/2
+        elif freq >=1e5 and freq < 1e6:            
+            return 240 - self._phase_slope*np.log10(freq)
+        else:
+            return 60.0*math.pi/180
 
     def Aopen(self,freq):
-        # G=143dB @ <0.1Hz
-        # G=130dB @ 1Hz
-        # G=10dB @ 1MHz
-        #if freq < 0.1:
-        #    G = 143.
-        #else:
-        #    G = 130
-        return 2.7e7
+        return np.power(10,self._Aflat/20.0)/((1+freq/self._pole1)*(1+freq/self._pole2))
 
     def voltage_noise(self, freq, fc=13.0, vflat=3.2e-9):
         """Input voltage noise.

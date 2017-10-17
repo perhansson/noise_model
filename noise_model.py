@@ -7,7 +7,13 @@ import numpy as np
 import matplotlib.pyplot as plt
 import impedance as Q
 from impedance import radToDeg
+from matplotlib import rc
 
+# setup Latex and font
+#rc('font',**{'family':'sans-serif','sans-serif':['Helvetica']})
+## for Palatino and other serif fonts use:
+#rc('font',**{'family':'serif','serif':['Palatino']})
+#rc('text', usetex=True)
 
 def get_args():
     parser = argparse.ArgumentParser('Noise Model')
@@ -124,7 +130,7 @@ def main():
     
     
     # freqency vector
-    f_arr = np.logspace(0,6)
+    f_arr = np.logspace(0,6, num=20)
     #f_arr = np.append(np.logspace(0,4)[:-1],np.logspace(4,5))
 
    
@@ -316,7 +322,8 @@ def main():
 
 
     print('--Noise calculation --')
-    
+
+    noise_sources = {}
 
     
     # noise from feedback Circuit
@@ -329,18 +336,23 @@ def main():
     
     noisePlot(fig, f_arr, en_Z2_input, name='en_Z2_input', ylabel='V/sqHz', note='FB cap and R network refered to input (/A_closed_total)')
     fig.clf()
+
+    noise_sources['en_Z2'] = en_Z2_input
     
     # noise from HEMT
-    en_HEMT = hemt.voltageNoise(f_arr, fc=1.2e3, vflat=0.24e-9)
+    en_HEMT_input = hemt.voltageNoise(f_arr, fc=1.2e3, vflat=0.24e-9)
 
-    noisePlot(fig, f_arr, en_HEMT,  name='en_HEMT_input', ylabel='V/sqHz')
+    noisePlot(fig, f_arr, en_HEMT_input,  name='en_HEMT_input', ylabel='V/sqHz')
     fig.clf()
+
+    noise_sources['en_HEMT'] = en_HEMT_input
 
     # noise from Z3
     en_Z3 = np.sqrt(4*args.T_300K*Q.kB*Z_Z3.real)
 
     noisePlot(fig, f_arr, en_Z3, name='en_Z3', ylabel='V/sqHz', legend=r'en Z_3')
     fig.clf()
+
 
     # refer voltage noise from Z3 to the input of the HEMT gate
     # BJT is 
@@ -349,6 +361,7 @@ def main():
     noisePlot(fig, f_arr, en_Z3_input,  name='en_Z3_input', ylabel=r'V/\sqrt{Hz}', legend=r'en Z_3 (input)')
     fig.clf()
 
+    noise_sources['en_Z3'] = en_Z3_input
 
     # noise from BJT
     in_BJT = np.ones(len(f_arr))*bjt.currentNoise(args.drainI)
@@ -357,12 +370,13 @@ def main():
     fig.clf()
     
     # voltage noise from BJT as referred to the input of HEMT (scale by gm)
-    en_BJT = in_BJT/hemt.gm
+    en_BJT_input = in_BJT/hemt.gm
 
-    noisePlot(fig, f_arr, en_BJT, name='en_BJT', ylabel=r'V/\sqrt{Hz}', note=r'BJT shot noise (input, gm={0:.1f}mS)'.format(hemt.gm*1e3))
+    noisePlot(fig, f_arr, en_BJT_input, name='en_BJT', ylabel=r'V/\sqrt{Hz}', note=r'BJT shot noise (input, gm={0:.1f}mS)'.format(hemt.gm*1e3))
     #impedancePlot(fig, f_arr, Aopen_HEMT, 'Aopen_HEMT.png', ylabel='Aopen HEMT', note='Aopen HEMT gm={0:.1f}mS'.format(hemt.gm*1e3))
     fig.clf()
 
+    noise_sources['en_BJT'] = en_BJT_input
 
     # noise from opamp
     en_opamp = opamp.voltage_noise(f_arr)
@@ -376,6 +390,31 @@ def main():
     en_opamp_input = en_opamp/Aopen_HEMT
 
     noisePlot(fig, f_arr, en_opamp_input, name='en_opamp_input', ylabel=r'V/\sqrt{Hz}', note=r'Opamp voltage noise (input)')
+
+    fig.clf()
+
+    noise_sources['en_opamp'] = en_opamp_input
+
+
+
+    # add all noise sources
+
+    en_total_input = None
+    for src, val in noise_sources.items():
+        if en_total_input is None:
+            en_total_input = np.power(np.abs(val),2)
+        else:
+            en_total_input += np.power(np.abs(val),2)
+        noisePlot(fig, f_arr, np.abs(val), legend=src)
+
+    en_total_input = np.sqrt(en_total_input)
+    noisePlot(fig, f_arr, en_total_input, legend='en_total', name='en_total_input', ylabel=r'V/\sqrt{Hz}', note=r'Total voltage noise (input)')
+
+    
+
+    fig.clf()
+
+
 
     
     if args.show:
