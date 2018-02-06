@@ -1,6 +1,8 @@
-import numpy as np
 from math import pi as pi
 from math import sqrt
+import cmath
+import numpy as np
+import matplotlib.pyplot as plt
 
 
 kB = 1.38064852e-23
@@ -16,6 +18,95 @@ def parallel(Z1,Z2):
 
 def series(Z1,Z2):
     return Z1 + Z2
+
+
+
+def to_np_array(func, arr):
+    return np.array([func(a) for a in arr])
+
+
+def impedancePlot(fig, f, Z, name=None, ylabel='Impedance', xlabel='Frequency', note=None, legend=None, logy=True):
+    """Plot impedance and phase"""
+
+
+    if fig == None:
+        plt.figure()
+    
+    ax_MC211 = plt.subplot(211)
+    line1, = plt.plot(f, np.abs(Z), label=legend)
+    plt.ylabel(ylabel)
+    plt.xlabel(xlabel)
+    if logy:
+        ax_MC211.set_yscale(u'log')
+    ax_MC211.set_xscale(u'log')
+    if note:
+        plt.text(0.1, 0.9, note, transform = ax_MC211.transAxes)
+    if legend:
+        #hs = ax_MC211.get_legend_handles_labels()
+        #hs = [hs,line1]
+        #if hss:
+        #    handles.append(line1)
+        plt.legend()
+        #else:
+        #    plt.legend(handles=[line1])
+    
+
+    Z_phase = to_np_array(cmath.phase, Z)
+
+    if name != None:
+        print("plot " + name)
+    print("phase")
+    print(Z_phase)
+    
+    ax_MC212 = plt.subplot(212)
+    plt.plot(f, radToDeg(Z_phase))
+    plt.ylabel('Phase')
+    plt.xlabel('Frequency')
+    #ax_MC1.set_yscale(u'log')
+    ax_MC212.set_xscale(u'log')
+
+    if name:
+        plt.savefig(name,bbox_inches='tight')
+
+    
+    return [ax_MC211, ax_MC212]
+
+
+
+def noisePlot(fig, f, Z, name=None, ylabel='Noise', xlabel='Frequency', note=None, legend=None, logy=True):
+    """Plot noise."""
+
+    if fig == None:
+        plt.figure()
+
+    
+    ax_MC211 = plt.subplot(111)
+    line1, = plt.plot(f, np.abs(Z), label=legend)
+    plt.ylabel(ylabel)
+    plt.xlabel(xlabel)
+    if logy:
+        ax_MC211.set_yscale(u'log')
+    ax_MC211.set_xscale(u'log')
+    if note:
+        plt.text(0.1, 0.9, note, transform = ax_MC211.transAxes)
+    if legend:
+        #hs = ax_MC211.get_legend_handles_labels()
+        #hs = [hs,line1]
+        #if hss:
+        #    handles.append(line1)
+        plt.legend()
+        #else:
+        #    plt.legend(handles=[line1])
+
+    if name:
+        plt.savefig(name,bbox_inches='tight')
+
+
+    return [ax_MC211]
+              
+
+
+
 
 class Component(object):
     def __init__(self, value, name=''):
@@ -53,7 +144,7 @@ class Circuit(object):
 
 
 class HEMT(Circuit):
-    def __init__(self,name, Rg=1e12, Cgs=100e-12, gm=50):
+    def __init__(self,name, Rg=1e12, Cgs=100e-12, gm=35):
         """ Arguments:
         Rg: input resistance on the gate
         Cgs: gate-source capacitance
@@ -111,7 +202,17 @@ class LT1677(OpAmp):
             return 60.0*math.pi/180
 
     def Aopen(self,freq):
-        return np.power(10,self._Aflat/20.0)/((1+freq/self._pole1)*(1+freq/self._pole2))
+        #return np.power(10,self._Aflat/20.0)/((1+freq/self._pole1)*(1+freq/self._pole2))
+        w = np.power(10,self._Aflat/20.0)
+        w1 = complex(1,freq/self._pole1)
+        w2 = complex(1,freq/self._pole2)
+        return w/(w1*w2)
+    
+    def Aopen_gary(self,freq):
+        w = 2*np.pi*freq
+        w0 = complex(1,w/(2*np.pi*10))
+        w1 = complex(1, w/(2*np.pi*1e6))
+        return 2e7/( w0*w1 )
 
     def voltage_noise(self, freq, fc=13.0, vflat=3.2e-9):
         """Input voltage noise.
@@ -120,6 +221,12 @@ class LT1677(OpAmp):
         """
         return (fc/freq + 1)*vflat
 
+    def voltage_noise_gary(self, freq):
+        """Input voltage noise based on Gary's notes. """
+        w = 2*pi*freq
+        return np.sqrt(np.power(1.8e-9,2) + np.power(30e-9,2)/freq)
+
+    
         
 
 
@@ -235,7 +342,7 @@ class Z4(Circuit):
 
 class Z2(Circuit):
     """Feedback cap and resistor network."""
-    def __init__(self,name, Cfb=1e-12, Rfb=320e6):
+    def __init__(self,name, Cfb=0.25e-12, Rfb=400e6):
         Circuit.__init__(self, name)
         self.Cfb = Capacitor(Cfb, 'Cfb')
         self.Rfb = Resistor(Rfb, 'Rfb')
