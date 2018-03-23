@@ -1,0 +1,11 @@
+.model 2N2222a NPN(IS=1E-14 VAF=100
++   BF=2000 IKF=0.3 XTB=1.5 BR=3
++   CJC=8E-12 CJE=25E-12 TR=100E-9 TF=400E-12
++   ITF=1 VTF=2 XTF=3 RB=10 RC=.3 RE=.2 Vceo=30 Icrating=800m  mfg=NXP)
+.model 2N3819a NJF(Beta=1.304m Betatce=-.5 Rd=1 Rs=1 Lambda=2.25m Vto=-3 Vtotc=-2.5m Is=33.57f Isr=322.4f N=1 Nr=2 Xti=3 Alpha=311.7u Vk=243.6 Cgd=1.6p M=.3622 Pb=1 Fc=.5 Cgs=2.414p Kf=9.882E-18 Af=1 mfg=Vishay)
+.model 2N3819b NJF(Beta=55 Betatce=-.5 Rd=1 Rs=1 Lambda=2.25m Vto=-3 Vtotc=-2.5m Is=33.57f Isr=322.4f N=1 Nr=2 Xti=3 Alpha=311.7u Vk=243.6 Cgd=1.6p M=.3622 Pb=1 Fc=.5 Cgs=2.414p Kf=9.882E-18 Af=1 mfg=Vishay)
+.model 2N3819c NJF(Beta=1.304m Betatce=-.5 Rd=1 Rs=1 Lambda=2.25m Vto=-3 Vtotc=-2.5m Is=33.57f Isr=322.4f N=1 Nr=2 Xti=3 Alpha=311.7u Vk=243.6 Cgd=1.6p M=.3622 Pb=1 Fc=.5 Cgs=2.414p Kf=9.882E-18 Af=1 mfg=Vishay)
+#.model hemt NJF(Beta=0.35 Lambda=3.142 Vto=-0.140  Pb=0.7 cgs=92p cgd=7.8p) 
+#.model hemt NJF(Beta=0.35 Lambda=3.142m Vto=-0.240  Pb=0.7 cgs=92p cgd=7.8p)
+.model hemt NJF(Beta=0.35 Lambda=3.142m Vto=-0.240  Pb=0.7 cgs=92p cgd=7.8p Betatce=-0.075 Kf=9.0E-18 Af=0.8) 
+

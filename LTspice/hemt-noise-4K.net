@@ -1,0 +1,16 @@
+* /Users/phansson/Documents/VMWare_shared/VMWare_SCMDS/LTspice/hemt-noise-4K.asc
+V1 Vg 0 -190m
+J2 OUT Vg 0 HEMT temp=-220
+V2 Vdd 0 1.15
+R1 Vdd OUT 1k noiseless
+R2 N001 0 50
+.model NJF NJF
+.model PJF PJF
+.lib /Users/phansson/Library/Application Support/LTspice/lib/cmp/standard.jft
+.LIB /Users/phansson/work/daq/LTspice/dave/Mylib.lib
+.noise V(OUT) V1 dec 100 10 1Meg
+* .TEMP -269
+.op
+* .step param X 1100m 1200m 1m
+.backanno
+.end

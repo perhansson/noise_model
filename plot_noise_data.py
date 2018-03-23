@@ -7,9 +7,10 @@ import matplotlib.pyplot as plt
 def get_noise_data(files):
     f = None
     n = None
+    print(files)
     for file in files:
         a = np.genfromtxt(file)
-        if f == None:
+        if f is None:
             f = a[:,0]
             n = a[:,1]
         else:

@@ -1,8 +1,6 @@
 from math import pi as pi
 from math import sqrt
-import cmath
 import numpy as np
-import matplotlib.pyplot as plt
 
 
 kB = 1.38064852e-23
@@ -19,93 +17,8 @@ def parallel(Z1,Z2):
 def series(Z1,Z2):
     return Z1 + Z2
 
-
-
 def to_np_array(func, arr):
     return np.array([func(a) for a in arr])
-
-
-def impedancePlot(fig, f, Z, name=None, ylabel='Impedance', xlabel='Frequency', note=None, legend=None, logy=True):
-    """Plot impedance and phase"""
-
-
-    if fig == None:
-        plt.figure()
-    
-    ax_MC211 = plt.subplot(211)
-    line1, = plt.plot(f, np.abs(Z), label=legend)
-    plt.ylabel(ylabel)
-    plt.xlabel(xlabel)
-    if logy:
-        ax_MC211.set_yscale(u'log')
-    ax_MC211.set_xscale(u'log')
-    if note:
-        plt.text(0.1, 0.9, note, transform = ax_MC211.transAxes)
-    if legend:
-        #hs = ax_MC211.get_legend_handles_labels()
-        #hs = [hs,line1]
-        #if hss:
-        #    handles.append(line1)
-        plt.legend()
-        #else:
-        #    plt.legend(handles=[line1])
-    
-
-    Z_phase = to_np_array(cmath.phase, Z)
-
-    if name != None:
-        print("plot " + name)
-    print("phase")
-    print(Z_phase)
-    
-    ax_MC212 = plt.subplot(212)
-    plt.plot(f, radToDeg(Z_phase))
-    plt.ylabel('Phase')
-    plt.xlabel('Frequency')
-    #ax_MC1.set_yscale(u'log')
-    ax_MC212.set_xscale(u'log')
-
-    if name:
-        plt.savefig(name,bbox_inches='tight')
-
-    
-    return [ax_MC211, ax_MC212]
-
-
-
-def noisePlot(fig, f, Z, name=None, ylabel='Noise', xlabel='Frequency', note=None, legend=None, logy=True):
-    """Plot noise."""
-
-    if fig == None:
-        plt.figure()
-
-    
-    ax_MC211 = plt.subplot(111)
-    line1, = plt.plot(f, np.abs(Z), label=legend)
-    plt.ylabel(ylabel)
-    plt.xlabel(xlabel)
-    if logy:
-        ax_MC211.set_yscale(u'log')
-    ax_MC211.set_xscale(u'log')
-    if note:
-        plt.text(0.1, 0.9, note, transform = ax_MC211.transAxes)
-    if legend:
-        #hs = ax_MC211.get_legend_handles_labels()
-        #hs = [hs,line1]
-        #if hss:
-        #    handles.append(line1)
-        plt.legend()
-        #else:
-        #    plt.legend(handles=[line1])
-
-    if name:
-        plt.savefig(name,bbox_inches='tight')
-
-
-    return [ax_MC211]
-              
-
-
 
 
 class Component(object):
@@ -180,17 +93,17 @@ class OpAmp(Circuit):
     
     def voltage_noise(self, freq):
         """ override this function"""
-        return voltage_noise(freq)
+        return None
 
 
     
 class LT1677(OpAmp):
     """Specific Opamp"""
-    def __init__(self, name):
+    def __init__(self, name, flat=135.0, poles=(0.5, 80e3)):
         OpAmp.__init__(self,name)
-        self._pole1 = 0.5 #Hz
-        self._pole2 = 80e3 #Hz
-        self._Aflat = 135.0 #Db
+        self._pole1 = poles[0] #Hz
+        self._pole2 = poles[1] # Hz
+        self._Aflat = flat #Db
         self._phase_slope = -30 #deg/decade in Freq
         
     def Aopen_phase(self, freq):
@@ -208,10 +121,10 @@ class LT1677(OpAmp):
         w2 = complex(1,freq/self._pole2)
         return w/(w1*w2)
     
-    def Aopen_gary(self,freq):
+    def Aopen_gary(self,freq,flat=2e7, pole1=10, pole2=1e6):
         w = 2*np.pi*freq
-        w0 = complex(1,w/(2*np.pi*10))
-        w1 = complex(1, w/(2*np.pi*1e6))
+        w0 = complex(1,w/(2*np.pi*pole1))
+        w1 = complex(1, w/(2*np.pi*pole2))
         return 2e7/( w0*w1 )
 
     def voltage_noise(self, freq, fc=13.0, vflat=3.2e-9):
@@ -287,7 +200,7 @@ class Z1_g(Circuit):
 
 class Z1_MC(Circuit):
     """Circuitry on lower coax PCB at MC stage."""
-    def __init__(self,name,Cdet=200.0e-12, Rbias=80e6, Rbleed=80e6, Cc=10e-9):
+    def __init__(self,name,Cdet=200e-12, Rbias=80e6, Rbleed=80e6, Cc=10e-9):
         Circuit.__init__(self,name)
         self.Cdet = Capacitor(Cdet, 'Cdet')
         self.Rbias = Resistor(Rbias, 'Rbias')
