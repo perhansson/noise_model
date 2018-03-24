@@ -25,13 +25,17 @@ def setup_plt(*argv):
 
 
 
-def simple_plot(x, y, fig=None, ax=None, name=None, ylabel=None, xlabel=None, note=None, 
+def simple_plot(x, y, fig_ax=None, name=None, ylabel=None, xlabel=None, note=None, 
                 legend=None, logy=False, logx=False, save_path=None, line='-'):
     """Simple plot. """
 
 
-    if ax == None:
+    if fig_ax is None:
         fig, ax = plt.subplots(figsize=(18,12))
+    else:
+        fig = fig_ax[0]
+        ax = fig_ax[0][0]
+
     setup_plt(fig)
 
     if legend != None:
@@ -48,13 +52,13 @@ def simple_plot(x, y, fig=None, ax=None, name=None, ylabel=None, xlabel=None, no
         ax.set_xscale(u'log')
 
     if note:
-        plt.text(0.1, 0.9, note, transform = ax.transAxes)
+        ax.text(0.1, 0.9, note, transform = ax.transAxes)
     
     
     # if a name is given, save to file
     if name:
         print("save " + name)
-        plt.savefig(name,bbox_inches='tight')
+        fig.savefig(name,bbox_inches='tight')
 
     # if pathis given, save to file
     if save_path != None:
@@ -63,7 +67,7 @@ def simple_plot(x, y, fig=None, ax=None, name=None, ylabel=None, xlabel=None, no
         else:
             np.savez(save_path, x=x, y=y)
     
-    return (fig,ax)
+    return (fig,(ax,))
 
 
         
@@ -116,79 +120,87 @@ def simple_overlay_plot(x1, y1, x2, y2,
 
 
 
-def impedance_plot(fig, f, Z, name=None, ylabel='Impedance', xlabel='Frequency', note=None, 
-                   legend=None, logy=True):
+def impedance_plot(f, Z, name=None, ylabel='Impedance', xlabel='Frequency', note=None, 
+                   legend=None, logy=True, fig_ax=None):
     """Plot impedance and phase"""
 
-
-    if fig == None:
-        fig, (ax_MC211, ax_MC212) = plt.figure(2, 1, figsize=(18,12))
-
+    if name != None:
+        print("plot " + name)
     
-    line1, = plt.plot(f, np.abs(Z), label=legend)
-    plt.ylabel(ylabel)
-    plt.xlabel(xlabel)
+    if fig_ax is None:
+        fig, (ax1, ax2) = plt.subplots(2, 1, figsize=(18,12))
+    else:
+        fig = fig_ax[0]
+        ax1 = fig_ax[1][0]
+        ax2 = fig_ax[1][1]
+    line1, = ax1.plot(f, np.abs(Z), label=legend)
+    ax1.set_ylabel(ylabel)
+    ax1.set_xlabel(xlabel)
     if logy:
-        ax_MC211.set_yscale(u'log')
-    ax_MC211.set_xscale(u'log')
+        ax1.set_yscale(u'log')
+    ax1.set_xscale(u'log')
     if note:
-        plt.text(0.1, 0.9, note, transform = ax_MC211.transAxes)
-    if legend:
-        #hs = ax_MC211.get_legend_handles_labels()
+        ax1.text(0.1, 0.9, note, transform = ax1.transAxes)
+    if legend is not None:
+        #hs = ax1.get_legend_handles_labels()
         #hs = [hs,line1]
         #if hss:
         #    handles.append(line1)
-        plt.legend()
+        ax1.legend()
         #else:
         #    plt.legend(handles=[line1])
     
 
     Z_phase = to_np_array(cmath.phase, Z)
 
-    if name != None:
-        print("plot " + name)
-    print("phase")
-    print(Z_phase)
     
-    plt.plot(f, radToDeg(Z_phase))
-    plt.ylabel('Phase')
-    plt.xlabel('Frequency')
-    ax_MC212.set_xscale(u'log')
+    
+    ax2.plot(f, radToDeg(Z_phase))
+    ax2.set_ylabel('Phase')
+    ax2.set_xlabel('Frequency')
+    ax2.set_xscale(u'log')
 
     # if a name is given, save to file
     if name:
-        plt.savefig(name,bbox_inches='tight')
-    return [ax_MC211, ax_MC212]
+        fig.savefig(name,bbox_inches='tight')
+        
+    #a = input("pause")
+    return (fig, (ax1, ax2))
 
 
 
-def noise_plot(fig, f, Z, name=None, ylabel='Noise', xlabel='Frequency', note=None, 
-               legend=None, logy=True):
+def noise_plot(f, Z, name=None, ylabel='Noise', xlabel='Frequency', note=None, 
+               legend=None, logy=True, fig_ax=None):
     """Plot noise."""
 
-    if fig == None:
-        plt.figure(figsize=(18,12))
+    if name != None:
+        print("plot " + name)
     
-    ax_MC211 = plt.subplot(111)
-    line1, = plt.plot(f, np.abs(Z), label=legend)
+    if fig_ax is None:
+        fig, ax1 = plt.subplots(figsize=(18,12))
+    else:
+        fig = fig_ax[0]
+        ax1 = fig_ax[1][0]
+    #    ax1 = plt.subplot(111)
+    line1, = ax1.plot(f, np.abs(Z), label=legend)
     plt.ylabel(ylabel)
     plt.xlabel(xlabel)
     if logy:
-        ax_MC211.set_yscale(u'log')
-    ax_MC211.set_xscale(u'log')
+        ax1.set_yscale(u'log')
+    ax1.set_xscale(u'log')
     if note:
-        plt.text(0.1, 0.9, note, transform = ax_MC211.transAxes)
-    if legend:
-        #hs = ax_MC211.get_legend_handles_labels()
+        ax1.text(0.1, 0.9, note, transform = ax1.transAxes)
+    if legend is not None:
+        #hs = ax1.get_legend_handles_labels()
         #hs = [hs,line1]
         #if hss:
         #    handles.append(line1)
-        plt.legend()
+        ax1.legend()
         #else:
         #    plt.legend(handles=[line1])
 
     if name:
-        plt.savefig(name,bbox_inches='tight')
+        fig.savefig(name,bbox_inches='tight')
 
-
-    return [ax_MC211]
+    
+    return (fig, ax1)
